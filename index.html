@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>教師課堂管理工具</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 20px; background: linear-gradient(to bottom, #f0f8ff, #e6f3ff); color: #333; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
+        section { margin-bottom: 25px; border: 2px solid #3498db; border-radius: 10px; padding: 20px; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h2 { color: #2980b9; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #bdc3c7; padding: 12px; text-align: left; background: #ecf0f1; }
+        th { background: #3498db; color: white; }
+        button { background: #3498db; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; margin: 5px; transition: background 0.3s; }
+        button:hover { background: #2980b9; }
+        input, select, textarea { padding: 8px; border: 1px solid #bdc3c7; border-radius: 5px; margin: 5px; width: auto; }
+        textarea { width: 100%; height: 100px; }
+        #seatingChart { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+        #seatingChart div { background: #d5dbdb; padding: 10px; border-radius: 5px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>教師課堂管理整合工具 (更新日: 2025/11/09)</h1>
+
+    <section id="calendar">
+        <h2>日曆</h2>
+        <table>
+            <tr><th>日</th><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th></tr>
+            <tr><td colspan="7">日曆內容</td></tr>
+        </table>
+    </section>
+
+    <section id="stats">
+        <h2>統計</h2>
+        <h3>設定分組數量</h3>
+        <label>設定分幾組：</label><input type="number" id="groups" min="1" max="10"><button onclick="setGroups()">設定</button>
+        <h3>每週/每月統計</h3>
+        <button onclick="weeklyStats()">每週統計 ▶</button><button onclick="monthlyStats()">每月統計 ▶</button>
+    </section>
+
+    <section id="seating">
+        <h2>教室座位表生成器</h2>
+        <h3>輸入學生</h3>
+        <input type="file" id="importFile" accept=".csv"><button onclick="importStudents()">匯入名單</button><br>
+        <textarea id="students" placeholder="輸入學生姓名，每行一個"></textarea><br>
+        <label>選擇分組方式：</label><select id="groupMethod"><option>隨機</option><option>依序</option></select><br>
+        <button onclick="generateSeating()">生成座位表</button>
+        <div id="seatingChart">座位表預覽</div>
+    </section>
+
+    <section id="homework">
+        <h2>作業追蹤</h2>
+        <h3>依日期區間搜尋未完成</h3>
+        <input type="date" id="startDate"> 到 <input type="date" id="endDate"><button onclick="searchHomework()">搜尋</button>
+        <h3>依學生查詢未完成</h3>
+        <select id="studentSelect"></select><button onclick="queryStudent()">查詢</button>
+        <div id="homeworkResults">結果</div>
+    </section>
+
+    <section id="scores">
+        <h2>學生加扣分管理與兌換獎勵工具</h2>
+        <button onclick="exportScores()">匯出資料</button>
+        <table>
+            <thead><tr><th>學生姓名</th><th>總得分</th><th>兌換獎勵</th><th>兌換記錄</th></tr></thead>
+            <tbody id="scoreTable">
+                <tr><td>學生A</td><td>100</td><td>獎勵1</td><td>2025/11/01</td></tr>
+                <tr><td>學生B</td><td>80</td><td>獎勵2</td><td>2025/11/05</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <script>
+        let studentsList = ['學生A', '學生B'];
+
+        function setGroups() { alert('分組設定完成'); }
+        function weeklyStats() { alert('每週統計'); }
+        function monthlyStats() { alert('每月統計'); }
+        function searchHomework() { alert('搜尋結果'); }
+        function queryStudent() { alert('學生查詢'); }
+
+        function importStudents() {
+            const file = document.getElementById('importFile').files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const text = e.target.result;
+                    const students = text.split('\n').map(s => s.trim()).filter(s => s);
+                    document.getElementById('students').value = students.join('\n');
+                    studentsList = students;
+                    updateStudentSelect();
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function generateSeating() {
+            const students = document.getElementById('students').value.split('\n').filter(s => s.trim()) || studentsList;
+            const method = document.getElementById('groupMethod').value;
+            if (method === '隨機') students.sort(() => Math.random() - 0.5);
+            document.getElementById('seatingChart').innerHTML = students.map(s => `<div>${s}</div>`).join('');
+        }
+
+        function updateStudentSelect() {
+            const select = document.getElementById('studentSelect');
+            select.innerHTML = studentsList.map(s => `<option>${s}</option>`).join('');
+        }
+        updateStudentSelect();
+
+        function exportScores() {
+            const table = document.getElementById('scoreTable');
+            const rows = Array.from(table.rows).map(row => Array.from(row.cells).map(cell => cell.textContent));
+            const csv = rows.map(r => r.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'scores.csv';
+            a.click();
+        }
+    </script>
+</body>
+</html>
